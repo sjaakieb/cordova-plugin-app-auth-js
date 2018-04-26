@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://cordova.apache.org/ns/plugins/1.0" id="cordova-plugin-app-auth-js" version="0.0.1">
+    <name>cordova-plugin-app-auth-js</name>
+    <js-module src="www/app_auth_js.js" name="AppAuthJs">
+        <clobbers target="AppAuthJs" />
+    </js-module>
+</plugin>
