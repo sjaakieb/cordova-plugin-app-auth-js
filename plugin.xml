@@ -4,4 +4,5 @@
     <js-module src="www/app_auth_js.js" name="AppAuthJs">
         <clobbers target="AppAuthJs" />
     </js-module>
+    <dependency id="cordova-plugin-safariviewcontroller" version="1.5.3"/>
 </plugin>

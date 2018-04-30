@@ -4,7 +4,7 @@ const webpack = require('webpack');
 const config = {
   context: path.resolve(__dirname, 'src'),
   entry: {
-    app_auth_js: './app_auth_js.js'
+    app_auth_js: './app_auth_js.ts'
   },
   output: {
     filename: 'app_auth_js.js',
@@ -14,15 +14,6 @@ const config = {
   },
   module: {
     rules: [
-      {
-        test: /\.js$/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['es2015']
-          }
-        }
-      },
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
