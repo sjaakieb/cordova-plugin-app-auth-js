@@ -9,6 +9,7 @@ import {BaseTokenRequestHandler, TokenRequestHandler} from "@openid/appauth/buil
 import {ViewControllerRequestHandler} from "./viewcontroller_request_handler.ts";
 import {WebviewRequestor} from "./webview_requestor.ts";
 const requestor = new WebviewRequestor();
+import {log} from "@openid/appauth/built/logger";
 
 export default class OIDCClient {
   private name: string;
@@ -37,7 +38,12 @@ export default class OIDCClient {
 
     this.authorizationHandler.setAuthorizationNotifier(this.notifier);
     this.notifier.setAuthorizationListener((request, response, error) => {
-      // TODO
+      log("Authorization request complete ", request, response, error);
+      if (response) {
+        this.makeRefreshTokenRequest(this.configuration!, response.code)
+            .then((result) => this.makeAccessTokenRequest(this.configuration!, result.refreshToken!))
+            .then(() => log("All done."));
+      }
     });
   }
 
@@ -71,5 +77,26 @@ export default class OIDCClient {
 
   public completeAuthorizationRequest() {
     this.authorizationHandler.completeAuthorizationRequestIfPossible();
+  }
+
+  private makeAccessTokenRequest(configuration: AuthorizationServiceConfiguration, refreshToken: string) {
+    const request =
+        new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_REFRESH_TOKEN, undefined, refreshToken);
+
+    return this.tokenHandler.performTokenRequest(configuration, request).then((response) => {
+      log(`Access Token is ${response.accessToken}, Id Token is ${response.idToken}`);
+      return response;
+    });
+  }
+
+  private makeRefreshTokenRequest(configuration: AuthorizationServiceConfiguration, code: string) {
+    // use the code to make the token request.
+    const request =
+        new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_AUTHORIZATION_CODE, code, undefined);
+
+    return this.tokenHandler.performTokenRequest(configuration, request).then((response) => {
+      log(`Refresh Token is ${response.refreshToken}`);
+      return response;
+    });
   }
 }
