@@ -2,9 +2,7 @@
   "name": "cordova-plugin-app-auth-js",
   "version": "0.0.1",
   "license": "MIT",
-  "dependencies": {
-    "query-string": "^6.2.0"
-  },
+  "dependencies": {},
   "scripts": {
     "build": "./node_modules/.bin/webpack --mode development",
     "build:prod": "./node_modules/.bin/webpack --mode production",
@@ -15,7 +13,8 @@
     "@types/node": "^9.6.6",
     "@types/query-string": "^6.1.1",
     "acorn-dynamic-import": "^3.0.0",
-    "browser-request": "^0.3.3",
+    "axios": "^0.18.0",
+    "query-string": "^6.2.0",
     "ts-loader": "^4.2.0",
     "typescript": "^2.8.3",
     "webpack": "^4.25.0",
