@@ -12,6 +12,9 @@ const requestor = new WebviewRequestor();
 import {log} from "@openid/appauth/built/logger";
 
 export default class OIDCClient {
+  public refreshToken: string;
+  public accessToken: string;
+  public idToken: string;
   private name: string;
   private issuerUrl: string;
   private redirectUri: string;
@@ -21,6 +24,7 @@ export default class OIDCClient {
   private notifier: AuthorizationNotifier;
   private tokenHandler: BaseTokenRequestHandler;
   private authorizationHandler: AuthorizationRequestHandler;
+  private authorizationCode: string;
 
   constructor({issuerUrl, redirectUri, clientId, scopes}:
     {issuerUrl: string, redirectUri: string, clientId: string, scopes: string}) {
@@ -30,6 +34,10 @@ export default class OIDCClient {
     this.redirectUri = redirectUri;
     this.clientId = clientId;
     this.scopes = scopes;
+    this.refreshToken = "";
+    this.accessToken = "";
+    this.idToken = "";
+    this.authorizationCode = "";
 
     // Configure handlers
     this.notifier = new AuthorizationNotifier();
@@ -40,9 +48,9 @@ export default class OIDCClient {
     this.notifier.setAuthorizationListener((request, response, error) => {
       log("Authorization request complete ", request, response, error);
       if (response) {
-        this.makeRefreshTokenRequest(this.configuration!, response.code)
-            .then((result) => this.makeAccessTokenRequest(this.configuration!, result.refreshToken!))
-            .then(() => log("All done."));
+        this.authorizationCode = response.code;
+        this.makeRefreshTokenRequest()
+            .then((result) => this.makeAccessTokenRequest(result.refreshToken!));
       }
     });
   }
@@ -79,23 +87,26 @@ export default class OIDCClient {
     this.authorizationHandler.completeAuthorizationRequestIfPossible();
   }
 
-  private makeAccessTokenRequest(configuration: AuthorizationServiceConfiguration, refreshToken: string) {
-    const request =
-        new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_REFRESH_TOKEN, undefined, refreshToken);
+  public makeAccessTokenRequest(refreshToken = this.refreshToken) {
+    const request = new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_REFRESH_TOKEN,
+      undefined, refreshToken);
 
-    return this.tokenHandler.performTokenRequest(configuration, request).then((response) => {
-      log(`Access Token is ${response.accessToken}, Id Token is ${response.idToken}`);
+    return this.tokenHandler.performTokenRequest(this.configuration!, request).then((response) => {
+      this.accessToken = response.accessToken || "";
+      this.idToken = response.idToken || "";
       return response;
     });
   }
 
-  private makeRefreshTokenRequest(configuration: AuthorizationServiceConfiguration, code: string) {
-    // use the code to make the token request.
-    const request =
-        new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_AUTHORIZATION_CODE, code, undefined);
+  private makeRefreshTokenRequest() {
+    if (this.authorizationCode === "") {
+      throw new Error("Authorization request not completed");
+    }
+    const request = new TokenRequest(this.clientId, this.redirectUri, GRANT_TYPE_AUTHORIZATION_CODE,
+      this.authorizationCode, undefined);
 
-    return this.tokenHandler.performTokenRequest(configuration, request).then((response) => {
-      log(`Refresh Token is ${response.refreshToken}`);
+    return this.tokenHandler.performTokenRequest(this.configuration!, request).then((response) => {
+      this.refreshToken = response.refreshToken || "";
       return response;
     });
   }
