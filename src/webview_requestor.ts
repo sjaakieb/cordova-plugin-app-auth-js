@@ -1,4 +1,3 @@
-import {AppAuthError} from "@openid/appauth/built/errors";
 import {Requestor} from "@openid/appauth/built/xhr";
 import axios from "axios";
 
