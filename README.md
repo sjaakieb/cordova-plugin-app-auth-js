@@ -37,7 +37,7 @@ cordova plugin add cordova-plugin-customurlscheme --variable URL_SCHEME=your-app
 client = new AppAuthJs.OIDCClient({issuerUrl: 'https://PROVIDER_DOMAIN/ISSUER', redirectUri: 'your-app-scheme://authCallback', clientId: 'clientID', scopes: 'openid'});
 
 // Authorization request
-client.fetchServiceConfiguration(function() => {
+client.fetchServiceConfiguration(function() {
   client.authorizationRequest(function() {
     console.log({refreshToken: client.refreshToken, accessToken: client.accessToken, idToken: client.idToken});
   });
