@@ -9,7 +9,7 @@
     "watch": "./node_modules/.bin/webpack --watch --mode development"
   },
   "devDependencies": {
-    "@openid/appauth": "^0.3.4",
+    "@openid/appauth": "^1.2.0",
     "@types/node": "^9.6.6",
     "@types/query-string": "^6.1.1",
     "acorn-dynamic-import": "^3.0.0",
