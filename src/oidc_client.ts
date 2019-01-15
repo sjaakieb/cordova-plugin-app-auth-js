@@ -89,10 +89,9 @@ export class OIDCClient {
 
   public authorizationRequest(cb: () => void = () => {}) {
     let extras:StringMap = { prompt: 'consent', access_type: 'offline' };
-    // if (this.audience) {
-    //   extras.audience = this.audience;
-    // }
-    extras.audience = this.clientId;
+    if (this.audience) {
+      extras.audience = this.audience;
+    }
     const request = new AuthorizationRequest({
       response_type: AuthorizationRequest.RESPONSE_TYPE_CODE,
       client_id: this.clientId,
