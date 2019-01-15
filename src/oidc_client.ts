@@ -17,12 +17,14 @@ import {
 } from '@openid/appauth/built/token_request_handler';
 import { ViewControllerRequestHandler } from './viewcontroller_request_handler.ts';
 import { WebviewRequestor } from './webview_requestor.ts';
+import { StringMap } from '@openid/appauth';
 const requestor = new WebviewRequestor();
 
 export class OIDCClient {
   public refreshToken: string;
   public accessToken: string;
   public idToken: string;
+  public audience?: string;
   private name: string;
   private issuerUrl: string;
   private redirectUri: string;
@@ -39,11 +41,13 @@ export class OIDCClient {
     redirectUri,
     clientId,
     scopes,
+    audience,
   }: {
     issuerUrl: string;
     redirectUri: string;
     clientId: string;
     scopes: string;
+    audience?: string;
   }) {
     // Client configuration
     this.name = 'OIDClient';
@@ -55,6 +59,9 @@ export class OIDCClient {
     this.accessToken = '';
     this.idToken = '';
     this.authorizationCode = '';
+    if (audience) {
+      this.audience = audience;
+    }
 
     // Configure handlers
     this.notifier = new AuthorizationNotifier();
@@ -81,13 +88,17 @@ export class OIDCClient {
   }
 
   public authorizationRequest(cb: () => void = () => {}) {
+    let extras:StringMap = { prompt: 'consent', access_type: 'offline' };
+    if (this.audience) {
+      extras.audience = this.audience;
+    }
     const request = new AuthorizationRequest({
       response_type: AuthorizationRequest.RESPONSE_TYPE_CODE,
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       scope: this.scopes,
       state: 'state',
-      extras: { prompt: 'consent', access_type: 'offline' },
+      extras,
     });
 
     if (!this.configuration) {
