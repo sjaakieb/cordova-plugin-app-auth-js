@@ -13,7 +13,7 @@ export class Agent {
         if (available) {
           window.SafariViewController.show({url, enterReaderModeIfAvailable: true});
         } else {
-          window.open(url);
+          window.open(url, "_system");
         }
       });
     });
