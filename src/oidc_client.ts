@@ -152,7 +152,7 @@ export class OIDCClient {
     });
   }
 
-  public authorizationRequest(cb: () => void = () => { }) {
+  public authorizationRequest(cb: (arg: OIDCClient) => void = () => { }) {
     let extras: StringMap = { prompt: 'consent', access_type: 'offline' };
     if (this.audience) {
       extras.audience = this.audience;
@@ -179,7 +179,7 @@ export class OIDCClient {
       .then(() => this.makeRefreshTokenRequest())
       .then(refreshToken => this.makeAccessTokenRequest(refreshToken))
       .then(() => {
-        cb();
+        cb(this);
       });
   }
 
@@ -228,7 +228,7 @@ export class OIDCClient {
         })
         .then((refreshToken) => {
           return this.setRefreshToken(refreshToken);
-        }).then(this.getRefreshToken);
+        }).then(() => this.getRefreshToken());
     })
   }
 }
