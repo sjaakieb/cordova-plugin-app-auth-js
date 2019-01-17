@@ -1,6 +1,4 @@
-declare const cordova : any;
-
-
+declare const cordova: any;
 
 import { AuthorizationRequest } from '@openid/appauth/built/authorization_request';
 import { AuthorizationRequestHandler } from '@openid/appauth/built/authorization_request_handler';
@@ -25,9 +23,6 @@ import { StringMap } from '@openid/appauth';
 const requestor = new WebviewRequestor();
 
 export class OIDCClient {
-  public refreshToken: string;
-  public accessToken: string;
-  public idToken: string;
   public audience?: string;
   private name: string;
   private issuerUrl: string;
@@ -39,7 +34,6 @@ export class OIDCClient {
   private notifier: AuthorizationNotifier;
   private tokenHandler: BaseTokenRequestHandler;
   private authorizationHandler: AuthorizationRequestHandler;
-  private authorizationCode: string;
 
   constructor({
     issuerUrl,
@@ -61,49 +55,13 @@ export class OIDCClient {
     this.clientId = clientId;
     this.scopes = scopes;
     this.secureStorage = new cordova.plugins.SecureStorage(
-      function() {
+      function () {
         console.log("Success");
       },
-      function(error) {
-        console.log("Error " + error);
+      function (error: string) {
+        console.error('Error while creating secure storage', error);
       },
       clientId
-    );
-
-    this.secureStorage.get(
-      (value:string) => this.refreshToken = value,
-      (error:string) => {
-        console.error("Error, " + error)
-        this.refreshToken = '';
-      },
-      "refresh_token",
-    );
-
-    this.secureStorage.get(
-      (value:string) => this.accessToken = value,
-      (error:string) => {
-        console.log("Error, " + error)
-        this.accessToken = '';
-      },
-      "access_token",
-    );
-
-    this.secureStorage.get(
-      (value:string) => this.idToken = value,
-      (error:string) => {
-        console.log("Error, " + error)
-        this.idToken = '';
-      },
-      "idToken",
-    );
-
-    this.secureStorage.get(
-      (value:string) => this.authorizationCode = value,
-      (error:string) => {
-        console.log("Error, " + error)
-        this.authorizationCode = '';
-      },
-      "authorizationCode",
     );
 
     if (audience) {
@@ -117,13 +75,73 @@ export class OIDCClient {
     this.authorizationHandler.setAuthorizationNotifier(this.notifier);
     this.notifier.setAuthorizationListener((request, response, error) => {
       if (response) {
-        this.authorizationCode = response.code;
+        this.setAuthorizationCode(response.code);
       }
     });
   }
 
+  public getAuthorizationCode() {
+    return this.getFromSecureStorage("authorizationCode");
+  }
+  public getRefreshToken() {
+    return this.getFromSecureStorage("refresh_token");
+  }
+
+  public getAccessToken() {
+    return this.getFromSecureStorage("access_token");
+  }
+
+  public getIdToken() {
+    return this.getFromSecureStorage("id_token");
+  }
+
+  public setAuthorizationCode(value: string) {
+    return this.putInSecureStorage("authorizationCode", value);
+  }
+  public setRefreshToken(value: string) {
+    return this.putInSecureStorage("refresh_token", value);
+  }
+
+  public setAccessToken(value: string) {
+    return this.putInSecureStorage("access_token", value);
+  }
+
+  public setIdToken(value: string) {
+    return this.putInSecureStorage("id_token", value);
+  }
+
+
+  private putInSecureStorage(key: string, value: string) {
+    return new Promise((resolve, reject) => {
+      this.secureStorage.put(
+        (value: string) => resolve(value),
+        (error: string) => {
+          console.error(`Error putting ${value} into secure storage with key ${key}`, error)
+          reject(error);
+        },
+        key,
+        value,
+      )
+    });
+  }
+
+
+  private getFromSecureStorage(key: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.secureStorage.get(
+        (value: string) => resolve(value),
+        (error: string) => {
+          console.error(`Error retrieving ${key} from secure storage`, error)
+          reject(error);
+        },
+        key,
+      )
+    });
+  }
+
+
   public fetchServiceConfiguration(
-    cb: (configuration: AuthorizationServiceConfiguration) => void = () => {}
+    cb: (configuration: AuthorizationServiceConfiguration) => void = () => { }
   ) {
     AuthorizationServiceConfiguration.fetchFromIssuer(
       this.issuerUrl,
@@ -134,8 +152,8 @@ export class OIDCClient {
     });
   }
 
-  public authorizationRequest(cb: () => void = () => {}) {
-    let extras:StringMap = { prompt: 'consent', access_type: 'offline' };
+  public authorizationRequest(cb: () => void = () => { }) {
+    let extras: StringMap = { prompt: 'consent', access_type: 'offline' };
     if (this.audience) {
       extras.audience = this.audience;
     }
@@ -165,16 +183,18 @@ export class OIDCClient {
       });
   }
 
-  public refreshTokenRequest(cb: () => void = () => {}) {
-    this.makeAccessTokenRequest(this.refreshToken).then(() => {
+  public refreshTokenRequest(cb: () => void = () => { }) {
+    this.getRefreshToken().then((refreshToken: string) => {
+      return this.makeAccessTokenRequest(refreshToken)
+    }).then(() => {
       cb();
     });
   }
 
   private makeAccessTokenRequest(refreshToken: string): Promise<string> {
     const request = new TokenRequest({
-      client_id:this.clientId,
-      redirect_uri:this.redirectUri,
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
       grant_type: GRANT_TYPE_REFRESH_TOKEN,
       refresh_token: refreshToken
     });
@@ -182,29 +202,33 @@ export class OIDCClient {
     return this.tokenHandler
       .performTokenRequest(this.configuration!, request)
       .then(response => {
-        this.accessToken = response.accessToken || '';
-        this.idToken = response.idToken || '';
-        this.refreshToken = response.refreshToken || '';
-        return this.accessToken;
-      });
+        return Promise.all([this.setAccessToken(response.accessToken || ''),
+        this.setIdToken(response.idToken || ''),
+        this.setRefreshToken(response.refreshToken || ''),
+        ])
+      })
+      .then(this.getAccessToken);
   }
 
   private makeRefreshTokenRequest(): Promise<string> {
-    if (this.authorizationCode === '') {
-      throw new Error('Authorization request not completed');
-    }
-
-    const request = new TokenRequest({
-      client_id:this.clientId,
-      redirect_uri:this.redirectUri,
-      grant_type: GRANT_TYPE_AUTHORIZATION_CODE,
-      code: this.authorizationCode,
-    });
-
-    return this.tokenHandler
-      .performTokenRequest(this.configuration!, request)
-      .then(response => {
-        return (this.refreshToken = response.refreshToken || '');
+    return this.getAuthorizationCode().then((authorizationCode) => {
+      if (authorizationCode === '') {
+        throw new Error('Authorization request not completed');
+      }
+      const request = new TokenRequest({
+        client_id: this.clientId,
+        redirect_uri: this.redirectUri,
+        grant_type: GRANT_TYPE_AUTHORIZATION_CODE,
+        code: authorizationCode,
       });
+      return this.tokenHandler
+        .performTokenRequest(this.configuration!, request)
+        .then(response => {
+          return response.refreshToken || '';
+        })
+        .then((refreshToken) => {
+          return this.setRefreshToken(refreshToken);
+        }).then(this.getRefreshToken);
+    })
   }
 }
