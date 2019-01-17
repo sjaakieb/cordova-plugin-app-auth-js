@@ -113,7 +113,7 @@ export class OIDCClient {
 
   private putInSecureStorage(key: string, value: string) {
     return new Promise((resolve, reject) => {
-      this.secureStorage.put(
+      this.secureStorage.set(
         (value: string) => resolve(value),
         (error: string) => {
           console.error(`Error putting ${value} into secure storage with key ${key}`, error)
