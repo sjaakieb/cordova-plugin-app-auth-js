@@ -1,3 +1,7 @@
+declare const cordova : any;
+
+
+
 import { AuthorizationRequest } from '@openid/appauth/built/authorization_request';
 import { AuthorizationRequestHandler } from '@openid/appauth/built/authorization_request_handler';
 import {
@@ -30,6 +34,7 @@ export class OIDCClient {
   private redirectUri: string;
   private clientId: string;
   private scopes: string;
+  private secureStorage: any;
   private configuration?: AuthorizationServiceConfiguration;
   private notifier: AuthorizationNotifier;
   private tokenHandler: BaseTokenRequestHandler;
@@ -55,10 +60,52 @@ export class OIDCClient {
     this.redirectUri = redirectUri;
     this.clientId = clientId;
     this.scopes = scopes;
-    this.refreshToken = '';
-    this.accessToken = '';
-    this.idToken = '';
-    this.authorizationCode = '';
+    this.secureStorage = new cordova.plugins.SecureStorage(
+      function() {
+        console.log("Success");
+      },
+      function(error) {
+        console.log("Error " + error);
+      },
+      clientId
+    );
+
+    this.secureStorage.get(
+      (value:string) => this.refreshToken = value,
+      (error:string) => {
+        console.error("Error, " + error)
+        this.refreshToken = '';
+      },
+      "refresh_token",
+    );
+
+    this.secureStorage.get(
+      (value:string) => this.accessToken = value,
+      (error:string) => {
+        console.log("Error, " + error)
+        this.accessToken = '';
+      },
+      "access_token",
+    );
+
+    this.secureStorage.get(
+      (value:string) => this.idToken = value,
+      (error:string) => {
+        console.log("Error, " + error)
+        this.idToken = '';
+      },
+      "idToken",
+    );
+
+    this.secureStorage.get(
+      (value:string) => this.authorizationCode = value,
+      (error:string) => {
+        console.log("Error, " + error)
+        this.authorizationCode = '';
+      },
+      "authorizationCode",
+    );
+
     if (audience) {
       this.audience = audience;
     }
